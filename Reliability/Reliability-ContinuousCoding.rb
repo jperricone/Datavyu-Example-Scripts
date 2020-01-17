@@ -21,16 +21,16 @@ unless ([pri_col_name,rel_col_name] - column_names).empty?
   raise RuntimeError.new('File does not include necessary columns.')
 end
 
+# The prefixes for codes in the mutex column (are names of the source columns)
+p_prefix = pri_col_name.downcase
+r_prefix = rel_col_name.downcase
+
 # Create mutex column
 mutex_col = merge_columns('mutex', pri_col_name, rel_col_name)
 
 # Load columns
 col_pri = get_column(pri_col_name)
 col_rel = get_column(rel_col_name)
-
-# The prefixes for codes in the mutex column (are names of the source columns)
-p_prefix = pri_col_name.downcase
-r_prefix = rel_col_name.downcase
 
 # Filter out cells that are outside of the block cells, if any
 if block_col_name == ''
@@ -50,8 +50,11 @@ disagreement_cells = candidate_cells.select do |x|
   flag_dur = x.duration >= time_threshold
   flag_whole = intervals.include?([x.onset.to_i, x.offset.to_i])  # this region is an entire pri or rel cell
   flag_code_differs = codes_to_check.any?{ |y| x.get_code("#{p_prefix}_#{y}") != x.get_code("#{r_prefix}_#{y}") }
-  flag_disagree = flag_code_differs && (flag_dur || flag_whole || num_coders==2)
+  #flag_disagree = flag_code_differs && (flag_dur || flag_whole || num_coders==2)
   # printf("%s, %s, %s, %s, %s, %s, %s\n", pri_ord, rel_ord, flag_dur, flag_missing, flag_whole, flag_code_differs, flag_disagree)
+
+  # USE THIS LOGIC IF THERE ARE ALWAYS 2 CODERS 
+  #flag_disagree = (flag_dur && flag_code_differs) || (flag_code_differs && flag_whole)
   flag_disagree
 end
 
@@ -109,8 +112,9 @@ unless disagree_col_name == ''
   disagreement_cells.each do |x|
     ncell = disagree_col.new_cell
     codes_to_check.each do |y|
-      ncell.change_code("pri_#{y}", x.get_code("#{pri_col_name}_#{y}"))
-      ncell.change_code("rel_#{y}", x.get_code("#{rel_col_name}_#{y}"))
+
+      ncell.change_code("pri_#{y}", x.get_code("#{pri_col_name.downcase}_#{y}"))
+      ncell.change_code("rel_#{y}", x.get_code("#{rel_col_name.downcase}_#{y}"))
       ncell.onset = x.onset
       ncell.offset = x.offset
     end
